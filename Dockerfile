@@ -18,10 +18,6 @@ RUN chmod +x /usr/local/bin/livesync-git-backup /usr/local/bin/entrypoint \
 
 ENV CRON_SCHEDULE="0 */6 * * *" \
   TARGETS_FILE="/config/targets.json" \
-  SSH_PRIVATE_KEY="" \
-  SSH_PRIVATE_KEY_BASE64="" \
-  GIT_TOKEN="" \
-  GITHUB_TOKEN="" \
   GIT_USERNAME="x-access-token" \
   GIT_AUTHOR_NAME="LiveSync Backup Bot" \
   GIT_AUTHOR_EMAIL="livesync-backup@noreply.local" \

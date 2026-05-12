@@ -175,6 +175,7 @@ submodule_target() {
       remote: $remote,
       branch: $branch,
       commit_message: $message,
+      optional_source: true,
       exclude: ($excludes | split(",") | map(select(length > 0)))
     }'
 }
@@ -266,9 +267,15 @@ sync_files() {
   local target="$2"
   local source="$3"
   local worktree="$4"
+  local optional_source
   local filter_file="/tmp/${name}.rsync-filter"
+  optional_source="$(json_bool "${target}" '.optional_source')"
 
   if [[ ! -d "${source}" ]]; then
+    if [[ "${optional_source}" == "true" ]]; then
+      log "${name}: optional source does not exist, skipping target: ${source}"
+      return 2
+    fi
     log "${name}: source does not exist: ${source}"
     return 1
   fi
@@ -366,7 +373,13 @@ run_target() {
   log "${name}: starting"
   trust_remote_host "${remote}"
   ensure_worktree "${name}" "${remote}" "${branch}" "${worktree}"
-  sync_files "${name}" "${target}" "${source}" "${worktree}"
+  sync_files "${name}" "${target}" "${source}" "${worktree}" || {
+    local sync_status="$?"
+    if [[ "${sync_status}" == "2" ]]; then
+      return 0
+    fi
+    return "${sync_status}"
+  }
   update_submodules "${name}" "${target}" "${worktree}"
   commit_and_push "${name}" "${target}" "${worktree}" "${branch}"
 }

@@ -122,12 +122,12 @@ config file mounts; all user-controlled values are environment variables.
 Required values:
 
 ```env
-COUCHDB_USER=admin
-COUCHDB_PASSWORD=change-this-couchdb-password
-LIVESYNC_DATABASE=knowledge_vault
-LIVESYNC_PASSPHRASE=change-this-livesync-passphrase
-GIT_REMOTE_URL=https://github.com/YOUR_ORG/YOUR_VAULT_REPO.git
-GIT_TOKEN=github_pat_change_this
+COUCHDB_USER=<couchdb-user>
+COUCHDB_PASSWORD=<couchdb-password>
+LIVESYNC_DATABASE=<same-database-name-used-in-obsidian-livesync>
+LIVESYNC_PASSPHRASE=<same-passphrase-used-in-obsidian-livesync>
+GIT_REMOTE_URL=https://github.com/<org-or-user>/<vault-repo>.git
+GIT_TOKEN=<github-token-with-repo-write-access>
 ```
 
 Important rules:

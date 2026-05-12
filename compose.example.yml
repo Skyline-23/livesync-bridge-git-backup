@@ -16,6 +16,8 @@ services:
     environment:
       TZ: Asia/Seoul
     volumes:
+      # Mount config/bridge.example.json as ./bridge/dat/config.json after filling
+      # in the CouchDB database, user, password, and LiveSync passphrase.
       - ./bridge/dat:/livesync-bridge/dat
       - live-vault:/livesync-bridge/vault
 

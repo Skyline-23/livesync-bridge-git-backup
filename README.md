@@ -6,7 +6,13 @@ Cron-based Git snapshot worker for vault files produced by
 It is meant to run next to a Self-hosted LiveSync/CouchDB stack:
 
 ```text
-Obsidian clients -> CouchDB -> LiveSync Bridge -> filesystem vault -> this worker -> GitHub
+Obsidian clients
+  -> obsidian-livesync plugin
+  -> CouchDB
+  -> LiveSync Bridge
+  -> filesystem vault
+  -> this worker
+  -> GitHub
 ```
 
 ## Image
@@ -22,6 +28,18 @@ ghcr.io/skyline-23/livesync-bridge-git-backup:latest
 Self-hosted LiveSync is a sync layer, not a Git backup layer. LiveSync Bridge can
 materialize the remote vault into a filesystem folder. This worker periodically
 copies that folder into one or more Git worktrees and pushes snapshots.
+
+## Components
+
+| Component | Runs where | Role |
+| --- | --- | --- |
+| `obsidian-livesync` | Obsidian desktop/mobile app | Syncs the local Obsidian vault with CouchDB. |
+| CouchDB | Server / Dokploy | Stores the Self-hosted LiveSync remote database. |
+| LiveSync Bridge | Server / Dokploy | Materializes CouchDB data into a normal filesystem vault folder. |
+| This worker | Server / Dokploy | Commits and pushes filesystem snapshots to Git. |
+
+This image does not replace the Obsidian plugin. Users still install
+`obsidian-livesync` in Obsidian and point it at the same CouchDB database.
 
 ## Target Config
 
@@ -67,6 +85,8 @@ See [config/targets.example.json](config/targets.example.json).
 ## Dokploy / Compose
 
 Use [compose.example.yml](compose.example.yml) as the starting point.
+Use [config/bridge.example.json](config/bridge.example.json) as the LiveSync
+Bridge config shape.
 
 Important rules:
 

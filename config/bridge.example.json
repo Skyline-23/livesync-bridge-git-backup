@@ -1,0 +1,24 @@
+{
+  "peers": [
+    {
+      "type": "couchdb",
+      "name": "livesync",
+      "group": "main",
+      "url": "http://couchdb:5984",
+      "database": "YOUR_LIVESYNC_DATABASE",
+      "username": "YOUR_COUCHDB_USER",
+      "password": "YOUR_COUCHDB_PASSWORD",
+      "passphrase": "YOUR_LIVESYNC_PASSPHRASE",
+      "obfuscatePassphrase": "YOUR_LIVESYNC_PASSPHRASE",
+      "baseDir": "",
+      "useRemoteTweaks": true
+    },
+    {
+      "type": "storage",
+      "name": "vault-files",
+      "group": "main",
+      "baseDir": "/livesync-bridge/vault",
+      "scanOfflineChanges": false
+    }
+  ]
+}

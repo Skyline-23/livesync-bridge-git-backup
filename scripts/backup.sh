@@ -5,7 +5,7 @@ LOCK_FILE="/tmp/livesync-git-backup.lock"
 DATE_VALUE="$(date '+%Y-%m-%d %H:%M:%S')"
 
 log() {
-  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
+  printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >&2
 }
 
 setup_ssh() {
@@ -205,7 +205,7 @@ expand_auto_submodule_target() {
   branch="${branch:-main}"
 
   trust_remote_host "${remote}"
-  ensure_worktree "${name}" "${remote}" "${branch}" "${worktree}"
+  ensure_worktree "${name}" "${remote}" "${branch}" "${worktree}" >&2
 
   if [[ ! -f "${worktree}/.gitmodules" ]]; then
     printf '%s\n' "$(jq '.auto_submodules = false' <<< "${target}")"

@@ -1,0 +1,40 @@
+{
+  "targets": [
+    {
+      "name": "frontend",
+      "source": "/vault/frontend",
+      "worktree": "/git/frontend",
+      "remote": "https://github.com/YOUR_ORG/YOUR_FRONTEND_VAULT_REPO.git",
+      "branch": "main",
+      "commit_message": "backup(frontend): Snapshot {{date}}",
+      "exclude": [
+        "node_modules/",
+        ".obsidian/workspace.json",
+        ".obsidian/workspace-mobile.json"
+      ]
+    },
+    {
+      "name": "vault",
+      "source": "/vault",
+      "worktree": "/git/vault",
+      "remote": "https://github.com/YOUR_ORG/YOUR_VAULT_REPO.git",
+      "branch": "main",
+      "commit_message": "backup(vault): Snapshot {{date}}",
+      "exclude": [
+        "frontend/",
+        "node_modules/",
+        ".obsidian/workspace.json",
+        ".obsidian/workspace-mobile.json",
+        ".obsidian/backlink.json",
+        ".obsidian/graph.json",
+        ".obsidian/plugins/obsidian-livesync/"
+      ],
+      "submodules": [
+        {
+          "path": "frontend",
+          "branch": "main"
+        }
+      ]
+    }
+  ]
+}

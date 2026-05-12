@@ -1,5 +1,3 @@
-x-livesync-tool-image: &livesync-tool-image ghcr.io/skyline-23/livesync-bridge-git-backup:latest
-
 services:
   couchdb:
     image: couchdb:latest
@@ -14,7 +12,7 @@ services:
       - "5984:5984"
 
   livesync-bridge:
-    image: *livesync-tool-image
+    image: ghcr.io/skyline-23/livesync-bridge-git-backup:latest
     restart: unless-stopped
     depends_on:
       - couchdb
@@ -28,7 +26,7 @@ services:
       - live-vault:/data/vault
 
   git-backup:
-    image: *livesync-tool-image
+    image: ghcr.io/skyline-23/livesync-bridge-git-backup:latest
     restart: unless-stopped
     depends_on:
       - livesync-bridge
@@ -36,7 +34,8 @@ services:
       MODE: backup
       CRON_SCHEDULE: "${CRON_SCHEDULE:-0 */6 * * *}"
       GIT_TOKEN: ${GIT_TOKEN}
-      GIT_REMOTE_URL: ${GIT_REMOTE_URL}
+      GIT_REMOTE_URL: ${GIT_REMOTE_URL:-}
+      TARGETS_JSON: ${TARGETS_JSON:-}
     volumes:
       - live-vault:/vault:ro
       - git-worktrees:/git

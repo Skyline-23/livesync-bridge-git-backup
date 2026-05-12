@@ -23,6 +23,20 @@ setup_ssh() {
   fi
 }
 
+setup_git_auth() {
+  local token username
+  token="$(git_token)"
+  username="${GIT_USERNAME:-x-access-token}"
+
+  if [[ -z "${token}" ]]; then
+    return
+  fi
+
+  git config --global url."https://${username}:${token}@github.com/".insteadOf "https://github.com/"
+  git config --global url."https://${username}:${token}@github.com/".insteadOf "git@github.com:"
+  git config --global url."https://${username}:${token}@github.com/".insteadOf "ssh://git@github.com/"
+}
+
 remote_host() {
   local remote="$1"
   if [[ "${remote}" =~ ^git@([^:]+): ]]; then
@@ -141,6 +155,38 @@ sync_files() {
   rsync -a --delete --filter="merge ${filter_file}" "${source}/" "${worktree}/"
 }
 
+update_submodules() {
+  local name="$1"
+  local target="$2"
+  local worktree="$3"
+  local count path branch
+
+  count="$(jq '.submodules // [] | length' <<< "${target}")"
+  if [[ "${count}" == "0" ]]; then
+    return
+  fi
+
+  log "${name}: syncing submodule metadata"
+  git -C "${worktree}" submodule sync --recursive
+  git -C "${worktree}" submodule update --init --recursive
+
+  for i in $(seq 0 $((count - 1))); do
+    path="$(jq -r ".submodules[${i}].path // empty" <<< "${target}")"
+    branch="$(jq -r ".submodules[${i}].branch // \"main\"" <<< "${target}")"
+
+    if [[ -z "${path}" ]]; then
+      log "${name}: invalid submodule entry: missing path"
+      return 1
+    fi
+
+    git -C "${worktree}" submodule update --init -- "${path}"
+    git -C "${worktree}/${path}" fetch origin "${branch}"
+    git -C "${worktree}/${path}" checkout "${branch}"
+    git -C "${worktree}/${path}" pull --ff-only origin "${branch}"
+    log "${name}: submodule ${path} updated from origin/${branch}"
+  done
+}
+
 commit_and_push() {
   local name="$1"
   local target="$2"
@@ -197,6 +243,7 @@ run_target() {
   trust_remote_host "${remote}"
   ensure_worktree "${name}" "${remote}" "${branch}" "${worktree}"
   sync_files "${name}" "${target}" "${source}" "${worktree}"
+  update_submodules "${name}" "${target}" "${worktree}"
   commit_and_push "${name}" "${target}" "${worktree}" "${branch}"
 }
 
@@ -208,6 +255,7 @@ main() {
   fi
 
   setup_ssh
+  setup_git_auth
 
   local length
   length="$(jq '.targets | length' "${TARGETS_FILE}")"

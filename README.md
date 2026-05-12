@@ -88,7 +88,13 @@ For advanced setups, mount a JSON file at `/config/targets.json` or pass
 Each target is processed in order. Most deployments only need one `vault`
 target.
 
-See [config/targets.example.json](config/targets.example.json).
+For submodule-based vaults, put child targets before the parent vault target.
+The parent target should exclude the submodule folder from `rsync` and list it
+in `submodules`; the worker will update the submodule checkout to the latest
+remote branch before committing the parent vault.
+
+See [config/targets.example.json](config/targets.example.json) and
+[config/targets.submodules.example.json](config/targets.submodules.example.json).
 
 ## Backup Environment
 
@@ -106,7 +112,7 @@ See [config/targets.example.json](config/targets.example.json).
 | `GIT_EXCLUDES` | built-in Obsidian local-state ignores | Comma-separated rsync exclude patterns. |
 | `GIT_TOKEN` | empty | PAT for HTTPS remotes. Recommended for Dokploy. |
 | `GITHUB_TOKEN` | empty | Alternative token env name. Used when `GIT_TOKEN` is empty. |
-| `GIT_USERNAME` | `x-access-token` | HTTPS username used with `GIT_TOKEN`. |
+| `GIT_USERNAME` | `x-access-token` | HTTPS username used with `GIT_TOKEN`. The token is also used for GitHub submodule URLs, including `git@github.com:` URLs. |
 | `SSH_PRIVATE_KEY_BASE64` | empty | Base64-encoded SSH private key for SSH remotes. |
 | `SSH_PRIVATE_KEY` | empty | Plain SSH private key for SSH remotes. |
 | `GIT_AUTHOR_NAME` | `LiveSync Backup Bot` | Commit author name. |

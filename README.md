@@ -114,10 +114,10 @@ See [config/targets.example.json](config/targets.example.json) and
 | `GIT_SOURCE` | `/vault` | Source folder for the generated target. |
 | `GIT_WORKTREE` | `/git/vault` | Worktree folder for the generated target. |
 | `GIT_COMMIT_MESSAGE` | `backup(vault): Snapshot {{date}}` | Commit message for the generated target. |
-| `GIT_EXCLUDES` | built-in Obsidian local-state ignores | Comma-separated rsync exclude patterns. |
+| `GIT_EXCLUDES` | built-in repository and Obsidian metadata ignores | Comma-separated rsync exclude patterns. |
 | `AUTO_SUBMODULES` | `true` | Read `.gitmodules` from the parent repository and back up submodule folders automatically. |
 | `SUBMODULE_WORKTREE_ROOT` | `/git/submodules` | Worktree root for auto-discovered submodule repositories. |
-| `SUBMODULE_GIT_EXCLUDES` | built-in Obsidian local-state ignores | Comma-separated excludes for auto-discovered submodule backups. |
+| `SUBMODULE_GIT_EXCLUDES` | built-in repository and Obsidian metadata ignores | Comma-separated excludes for auto-discovered submodule backups. |
 | `GIT_TOKEN` | empty | PAT for HTTPS remotes. Recommended for Dokploy. |
 | `GITHUB_TOKEN` | empty | Alternative token env name. Used when `GIT_TOKEN` is empty. |
 | `GIT_USERNAME` | `x-access-token` | HTTPS username used with `GIT_TOKEN`. The token is also used for GitHub submodule URLs, including `git@github.com:` URLs. |
@@ -149,8 +149,9 @@ Important rules:
 - Do not put `.git` inside the LiveSync Bridge storage folder.
 - Keep the bridge output folder and Git worktrees separate.
 - Use a PAT with repository write access, or deploy keys if you use SSH remotes.
-- Exclude local Obsidian state such as workspace, graph, backlink, LiveSync
-  plugin data, and `node_modules/`.
+- Exclude repository metadata, local Obsidian state, plugin files, trash, and
+  `node_modules/` so a LiveSync filesystem snapshot cannot delete files that
+  are intentionally kept only in Git.
 
 ## Basic Vault Backup
 

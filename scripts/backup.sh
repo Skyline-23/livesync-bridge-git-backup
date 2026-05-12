@@ -158,7 +158,7 @@ submodule_target() {
   source="$(json_value "${parent}" '.source')/${path}"
   safe_name="${path//\//-}"
   worktree="${SUBMODULE_WORKTREE_ROOT:-/git/submodules}/${path}"
-  excludes="${SUBMODULE_GIT_EXCLUDES:-node_modules/,.obsidian/workspace.json,.obsidian/workspace-mobile.json,.obsidian/backlink.json,.obsidian/graph.json,.obsidian/plugins/obsidian-livesync/}"
+  excludes="${SUBMODULE_GIT_EXCLUDES:-.gitmodules,.gitignore,.editorconfig,.prettierignore,.prettierrc.json,.obsidian/,.trash/,node_modules/}"
 
   jq -n \
     --arg name "${module_name:-${safe_name}}" \

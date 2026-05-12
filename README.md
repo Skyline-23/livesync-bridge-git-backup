@@ -1,7 +1,7 @@
 # LiveSync Bridge Git Backup
 
-Cron-based Git snapshot worker for vault files produced by
-[LiveSync Bridge](https://github.com/vrtmrz/livesync-bridge).
+Env-only Docker wrapper for [LiveSync Bridge](https://github.com/vrtmrz/livesync-bridge)
+plus a cron-based Git snapshot worker.
 
 It is meant to run next to a Self-hosted LiveSync/CouchDB stack:
 
@@ -21,7 +21,8 @@ Obsidian clients
 ghcr.io/skyline-23/livesync-bridge-git-backup:latest
 ```
 
-`latest` is published from the `main` branch.
+`latest` is published from the `main` branch. Use the same image for both
+`MODE=bridge` and `MODE=backup`.
 
 ## Why this exists
 
@@ -35,15 +36,38 @@ copies that folder into one or more Git worktrees and pushes snapshots.
 | --- | --- | --- |
 | `obsidian-livesync` | Obsidian desktop/mobile app | Syncs the local Obsidian vault with CouchDB. |
 | CouchDB | Server / Dokploy | Stores the Self-hosted LiveSync remote database. |
-| LiveSync Bridge | Server / Dokploy | Materializes CouchDB data into a normal filesystem vault folder. |
-| This worker | Server / Dokploy | Commits and pushes filesystem snapshots to Git. |
+| `MODE=bridge` | Server / Dokploy | Runs LiveSync Bridge and materializes CouchDB data into a normal filesystem vault folder. |
+| `MODE=backup` | Server / Dokploy | Commits and pushes filesystem snapshots to Git. |
 
 This image does not replace the Obsidian plugin. Users still install
 `obsidian-livesync` in Obsidian and point it at the same CouchDB database.
 
-## Target Config
+## Bridge Mode
 
-Mount a JSON file at `/config/targets.json`.
+Use `MODE=bridge` to run the LiveSync Bridge wrapper. It configures CouchDB
+through the CouchDB HTTP API, creates the LiveSync database if needed, generates
+the upstream Bridge config from environment variables, and starts Bridge.
+
+| Name | Default | Description |
+| --- | --- | --- |
+| `MODE` | `backup` | Set to `bridge`. |
+| `COUCHDB_URL` | `http://couchdb:5984` | CouchDB URL from the bridge container. |
+| `COUCHDB_USER` | required | CouchDB user. |
+| `COUCHDB_PASSWORD` | required | CouchDB password. |
+| `LIVESYNC_DATABASE` | required | Self-hosted LiveSync database name. |
+| `LIVESYNC_PASSPHRASE` | empty | LiveSync E2EE passphrase. |
+| `LIVESYNC_OBFUSCATE_PASSPHRASE` | `LIVESYNC_PASSPHRASE` | Path obfuscation passphrase. |
+| `LIVESYNC_BASE_DIR` | empty | Optional remote vault subfolder to materialize. |
+| `BRIDGE_STORAGE_PATH` | `/data/vault` | Filesystem output path. |
+| `COUCHDB_CORS_ORIGINS` | Obsidian desktop/mobile defaults | CORS origins written to CouchDB. |
+
+## Backup Mode
+
+Use `MODE=backup` to run the Git snapshot worker. The simplest deployment only
+needs `GIT_REMOTE_URL`; the target JSON is generated automatically.
+
+For advanced setups, mount a JSON file at `/config/targets.json` or pass
+`TARGETS_JSON`.
 
 ```json
 {
@@ -66,12 +90,20 @@ target.
 
 See [config/targets.example.json](config/targets.example.json).
 
-## Environment
+## Backup Environment
 
 | Name | Default | Description |
 | --- | --- | --- |
+| `MODE` | `backup` | Set to `backup`. |
 | `CRON_SCHEDULE` | `0 */6 * * *` | Backup schedule in cron format. |
 | `TARGETS_FILE` | `/config/targets.json` | Target configuration path. |
+| `TARGETS_JSON` | empty | Inline target JSON. Used before `GIT_REMOTE_URL` mode. |
+| `GIT_REMOTE_URL` | empty | HTTPS or SSH remote URL for the generated single vault target. |
+| `GIT_BRANCH` | `main` | Branch for the generated target. |
+| `GIT_SOURCE` | `/vault` | Source folder for the generated target. |
+| `GIT_WORKTREE` | `/git/vault` | Worktree folder for the generated target. |
+| `GIT_COMMIT_MESSAGE` | `backup(vault): Snapshot {{date}}` | Commit message for the generated target. |
+| `GIT_EXCLUDES` | built-in Obsidian local-state ignores | Comma-separated rsync exclude patterns. |
 | `GIT_TOKEN` | empty | PAT for HTTPS remotes. Recommended for Dokploy. |
 | `GITHUB_TOKEN` | empty | Alternative token env name. Used when `GIT_TOKEN` is empty. |
 | `GIT_USERNAME` | `x-access-token` | HTTPS username used with `GIT_TOKEN`. |
@@ -84,9 +116,19 @@ See [config/targets.example.json](config/targets.example.json).
 
 ## Dokploy / Compose
 
-Use [compose.example.yml](compose.example.yml) as the starting point.
-Use [config/bridge.example.json](config/bridge.example.json) as the LiveSync
-Bridge config shape.
+Use [compose.example.yml](compose.example.yml) as the starting point. It has no
+config file mounts; all user-controlled values are environment variables.
+
+Required values:
+
+```env
+COUCHDB_USER=admin
+COUCHDB_PASSWORD=change-this-couchdb-password
+LIVESYNC_DATABASE=knowledge_vault
+LIVESYNC_PASSPHRASE=change-this-livesync-passphrase
+GIT_REMOTE_URL=https://github.com/YOUR_ORG/YOUR_VAULT_REPO.git
+GIT_TOKEN=github_pat_change_this
+```
 
 Important rules:
 

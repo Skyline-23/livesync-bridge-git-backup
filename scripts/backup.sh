@@ -106,6 +106,12 @@ json_value() {
   jq -r "${expr} // empty" <<< "${target}"
 }
 
+json_bool() {
+  local target="$1"
+  local expr="$2"
+  jq -r "${expr} // false" <<< "${target}"
+}
+
 ensure_worktree() {
   local name="$1"
   local remote="$2"
@@ -127,10 +133,120 @@ ensure_worktree() {
   git -C "${worktree}" pull --ff-only origin "${branch}"
 }
 
+submodule_name_from_key() {
+  local key="$1"
+  key="${key#submodule.}"
+  printf '%s\n' "${key%.path}"
+}
+
+submodule_target() {
+  local parent="$1"
+  local module_name="$2"
+  local path="$3"
+  local remote="$4"
+  local branch="$5"
+  local source worktree safe_name excludes
+
+  source="$(json_value "${parent}" '.source')/${path}"
+  safe_name="${path//\//-}"
+  worktree="${SUBMODULE_WORKTREE_ROOT:-/git/submodules}/${path}"
+  excludes="${SUBMODULE_GIT_EXCLUDES:-node_modules/,.obsidian/workspace.json,.obsidian/workspace-mobile.json,.obsidian/backlink.json,.obsidian/graph.json,.obsidian/plugins/obsidian-livesync/}"
+
+  jq -n \
+    --arg name "${module_name:-${safe_name}}" \
+    --arg source "${source}" \
+    --arg worktree "${worktree}" \
+    --arg remote "${remote}" \
+    --arg branch "${branch}" \
+    --arg message "backup(${safe_name}): Snapshot {{date}}" \
+    --arg excludes "${excludes}" \
+    '{
+      name: $name,
+      source: $source,
+      worktree: $worktree,
+      remote: $remote,
+      branch: $branch,
+      commit_message: $message,
+      exclude: ($excludes | split(",") | map(select(length > 0)))
+    }'
+}
+
+parent_target_with_submodules() {
+  local parent="$1"
+  local submodules_json="$2"
+  jq --argjson submodules "${submodules_json}" \
+    '.auto_submodules = false
+      | .submodules = ((.submodules // []) + $submodules)
+      | .exclude = (((.exclude // []) + ($submodules | map(.path + "/"))) | unique)' \
+    <<< "${parent}"
+}
+
+expand_auto_submodule_target() {
+  local target="$1"
+  local name remote branch worktree module_name path url module_branch submodules target_file
+
+  if [[ "$(json_bool "${target}" '.auto_submodules')" != "true" ]]; then
+    printf '%s\n' "${target}"
+    return
+  fi
+
+  name="$(json_value "${target}" '.name')"
+  remote="$(json_value "${target}" '.remote')"
+  branch="$(json_value "${target}" '.branch')"
+  worktree="$(json_value "${target}" '.worktree')"
+  branch="${branch:-main}"
+
+  trust_remote_host "${remote}"
+  ensure_worktree "${name}" "${remote}" "${branch}" "${worktree}"
+
+  if [[ ! -f "${worktree}/.gitmodules" ]]; then
+    printf '%s\n' "$(jq '.auto_submodules = false' <<< "${target}")"
+    return
+  fi
+
+  target_file="$(mktemp)"
+  submodules="[]"
+
+  while read -r key path; do
+    module_name="$(submodule_name_from_key "${key}")"
+    url="$(git -C "${worktree}" config --file .gitmodules --get "submodule.${module_name}.url")"
+    module_branch="$(git -C "${worktree}" config --file .gitmodules --get "submodule.${module_name}.branch" || true)"
+    module_branch="${module_branch:-main}"
+
+    trust_remote_host "${url}"
+    submodule_target "${target}" "${module_name}" "${path}" "${url}" "${module_branch}" >> "${target_file}"
+    submodules="$(jq -c --arg path "${path}" --arg branch "${module_branch}" '. + [{path: $path, branch: $branch}]' <<< "${submodules}")"
+  done < <(git -C "${worktree}" config --file .gitmodules --get-regexp 'submodule\..*\.path' || true)
+
+  if [[ -s "${target_file}" ]]; then
+    cat "${target_file}"
+  fi
+  rm -f "${target_file}"
+
+  parent_target_with_submodules "${target}" "${submodules}"
+}
+
+expand_targets() {
+  local expanded_file expanded_objects length
+  expanded_file="$(mktemp)"
+  expanded_objects="$(mktemp)"
+  length="$(jq '.targets | length' "${TARGETS_FILE}")"
+
+  for ((i = 0; i < length; i++)); do
+    expand_auto_submodule_target "$(json_target "${i}")" >> "${expanded_objects}"
+  done
+
+  jq -s '{targets: .}' "${expanded_objects}" > "${expanded_file}"
+
+  mv "${expanded_file}" "${TARGETS_FILE}"
+  rm -f "${expanded_objects}"
+}
+
 write_rsync_filter() {
   local target="$1"
   local filter_file="$2"
   {
+    printf -- '- .git\n'
     printf -- '- .git/\n'
     printf -- '- .git/**\n'
     jq -r '.exclude[]? | "- " + .' <<< "${target}"
@@ -170,7 +286,7 @@ update_submodules() {
   git -C "${worktree}" submodule sync --recursive
   git -C "${worktree}" submodule update --init --recursive
 
-  for i in $(seq 0 $((count - 1))); do
+  for ((i = 0; i < count; i++)); do
     path="$(jq -r ".submodules[${i}].path // empty" <<< "${target}")"
     branch="$(jq -r ".submodules[${i}].branch // \"main\"" <<< "${target}")"
 
@@ -256,10 +372,11 @@ main() {
 
   setup_ssh
   setup_git_auth
+  expand_targets
 
   local length
   length="$(jq '.targets | length' "${TARGETS_FILE}")"
-  for i in $(seq 0 $((length - 1))); do
+  for ((i = 0; i < length; i++)); do
     run_target "$(json_target "${i}")"
   done
 }

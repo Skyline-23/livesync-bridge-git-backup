@@ -35,7 +35,6 @@ services:
       CRON_SCHEDULE: "${CRON_SCHEDULE:-0 */6 * * *}"
       GIT_TOKEN: ${GIT_TOKEN}
       GIT_REMOTE_URL: ${GIT_REMOTE_URL:-}
-      TARGETS_JSON: ${TARGETS_JSON:-}
     volumes:
       - live-vault:/vault:ro
       - git-worktrees:/git

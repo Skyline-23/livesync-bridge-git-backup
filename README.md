@@ -66,6 +66,12 @@ the upstream Bridge config from environment variables, and starts Bridge.
 Use `MODE=backup` to run the Git snapshot worker. The simplest deployment only
 needs `GIT_REMOTE_URL`; the target JSON is generated automatically.
 
+When `AUTO_SUBMODULES=true` (the default), the worker clones the parent
+repository, reads `.gitmodules`, backs up each submodule folder to its configured
+remote first, then updates the parent repository's submodule pointers before
+pushing the parent snapshot. Adding a new submodule only requires updating the
+parent repository's `.gitmodules`.
+
 For advanced setups, mount a JSON file at `/config/targets.json` or pass
 `TARGETS_JSON`.
 
@@ -88,10 +94,9 @@ For advanced setups, mount a JSON file at `/config/targets.json` or pass
 Each target is processed in order. Most deployments only need one `vault`
 target.
 
-For submodule-based vaults, put child targets before the parent vault target.
-The parent target should exclude the submodule folder from `rsync` and list it
-in `submodules`; the worker will update the submodule checkout to the latest
-remote branch before committing the parent vault.
+If you disable auto-discovery and write `TARGETS_JSON` manually, put child
+targets before the parent vault target. The parent target should exclude the
+submodule folder from `rsync` and list it in `submodules`.
 
 See [config/targets.example.json](config/targets.example.json) and
 [config/targets.submodules.example.json](config/targets.submodules.example.json).
@@ -104,12 +109,15 @@ See [config/targets.example.json](config/targets.example.json) and
 | `CRON_SCHEDULE` | `0 */6 * * *` | Backup schedule in cron format. |
 | `TARGETS_FILE` | `/config/targets.json` | Target configuration path. |
 | `TARGETS_JSON` | empty | Inline target JSON. Used before `GIT_REMOTE_URL` mode. |
-| `GIT_REMOTE_URL` | empty | HTTPS or SSH remote URL for the generated single vault target. |
+| `GIT_REMOTE_URL` | empty | HTTPS or SSH remote URL for the generated vault target. |
 | `GIT_BRANCH` | `main` | Branch for the generated target. |
 | `GIT_SOURCE` | `/vault` | Source folder for the generated target. |
 | `GIT_WORKTREE` | `/git/vault` | Worktree folder for the generated target. |
 | `GIT_COMMIT_MESSAGE` | `backup(vault): Snapshot {{date}}` | Commit message for the generated target. |
 | `GIT_EXCLUDES` | built-in Obsidian local-state ignores | Comma-separated rsync exclude patterns. |
+| `AUTO_SUBMODULES` | `true` | Read `.gitmodules` from the parent repository and back up submodule folders automatically. |
+| `SUBMODULE_WORKTREE_ROOT` | `/git/submodules` | Worktree root for auto-discovered submodule repositories. |
+| `SUBMODULE_GIT_EXCLUDES` | built-in Obsidian local-state ignores | Comma-separated excludes for auto-discovered submodule backups. |
 | `GIT_TOKEN` | empty | PAT for HTTPS remotes. Recommended for Dokploy. |
 | `GITHUB_TOKEN` | empty | Alternative token env name. Used when `GIT_TOKEN` is empty. |
 | `GIT_USERNAME` | `x-access-token` | HTTPS username used with `GIT_TOKEN`. The token is also used for GitHub submodule URLs, including `git@github.com:` URLs. |

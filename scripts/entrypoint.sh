@@ -119,6 +119,7 @@ write_targets_config() {
       --arg branch "${GIT_BRANCH:-main}" \
       --arg message "${GIT_COMMIT_MESSAGE:-backup(vault): Snapshot {{date}}}" \
       --arg excludes "${GIT_EXCLUDES:-.obsidian/workspace.json,.obsidian/workspace-mobile.json,.obsidian/backlink.json,.obsidian/graph.json,.obsidian/plugins/obsidian-livesync/,node_modules/}" \
+      --arg autoSubmodules "${AUTO_SUBMODULES:-true}" \
       '{
         targets: [
           {
@@ -128,6 +129,7 @@ write_targets_config() {
             remote: $remote,
             branch: $branch,
             commit_message: $message,
+            auto_submodules: ($autoSubmodules == "true"),
             exclude: ($excludes | split(",") | map(select(length > 0)))
           }
         ]

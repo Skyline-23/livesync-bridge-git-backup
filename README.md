@@ -122,7 +122,7 @@ See [config/targets.example.json](config/targets.example.json) and
 | `GITHUB_TOKEN` | empty | Alternative token env name. Used when `GIT_TOKEN` is empty. |
 | `GIT_USERNAME` | `x-access-token` | HTTPS username used with `GIT_TOKEN`. The token is also used for GitHub submodule URLs, including `git@github.com:` URLs. |
 | `SSH_PRIVATE_KEY_BASE64` | empty | Base64-encoded SSH private key for SSH remotes. |
-| `SSH_PRIVATE_KEY` | empty | Plain SSH private key for SSH remotes. |
+| `SSH_PRIVATE_KEY` | empty | Plain SSH private key for SSH remotes. Escaped `\n` newlines are supported. |
 | `GIT_AUTHOR_NAME` | `LiveSync Backup Bot` | Commit author name. |
 | `GIT_AUTHOR_EMAIL` | `livesync-backup@noreply.local` | Commit author email. |
 | `RUN_ON_START` | `true` | Run one backup immediately before cron starts. |

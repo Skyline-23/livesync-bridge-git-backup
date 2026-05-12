@@ -13,13 +13,21 @@ setup_ssh() {
   chmod 700 "${HOME}/.ssh"
 
   if [[ -n "${SSH_PRIVATE_KEY_BASE64:-}" ]]; then
-    printf '%s' "${SSH_PRIVATE_KEY_BASE64}" | base64 -d > "${HOME}/.ssh/id_rsa"
+    if ! printf '%s' "${SSH_PRIVATE_KEY_BASE64}" | tr -d '[:space:]' | base64 -d > "${HOME}/.ssh/id_rsa"; then
+      echo "Invalid SSH_PRIVATE_KEY_BASE64. Provide a base64-encoded OpenSSH private key." >&2
+      exit 1
+    fi
   elif [[ -n "${SSH_PRIVATE_KEY:-}" ]]; then
-    printf '%s\n' "${SSH_PRIVATE_KEY}" > "${HOME}/.ssh/id_rsa"
+    printf '%b\n' "${SSH_PRIVATE_KEY}" > "${HOME}/.ssh/id_rsa"
   fi
 
   if [[ -f "${HOME}/.ssh/id_rsa" ]]; then
+    sed -i 's/\r$//' "${HOME}/.ssh/id_rsa"
     chmod 600 "${HOME}/.ssh/id_rsa"
+    if ! ssh-keygen -y -f "${HOME}/.ssh/id_rsa" >/dev/null; then
+      echo "Invalid SSH private key. Check SSH_PRIVATE_KEY_BASE64 or SSH_PRIVATE_KEY formatting." >&2
+      exit 1
+    fi
   fi
 }
 

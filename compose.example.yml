@@ -13,6 +13,7 @@ services:
 
   livesync-bridge:
     image: ghcr.io/skyline-23/livesync-bridge-git-backup:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - couchdb
@@ -27,6 +28,7 @@ services:
 
   git-backup:
     image: ghcr.io/skyline-23/livesync-bridge-git-backup:latest
+    pull_policy: always
     restart: unless-stopped
     depends_on:
       - livesync-bridge

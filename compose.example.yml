@@ -1,0 +1,42 @@
+services:
+  couchdb:
+    image: couchdb:3
+    restart: unless-stopped
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
+    volumes:
+      - couchdb-data:/opt/couchdb/data
+
+  livesync-bridge:
+    image: vrtmrz/livesync-bridge:latest
+    restart: unless-stopped
+    depends_on:
+      - couchdb
+    environment:
+      TZ: Asia/Seoul
+    volumes:
+      - ./bridge/dat:/livesync-bridge/dat
+      - live-vault:/livesync-bridge/vault
+
+  git-backup:
+    image: ghcr.io/skyline-23/livesync-bridge-git-backup:latest
+    restart: unless-stopped
+    depends_on:
+      - livesync-bridge
+    environment:
+      TZ: Asia/Seoul
+      CRON_SCHEDULE: "0 */6 * * *"
+      TARGETS_FILE: /config/targets.json
+      GIT_TOKEN: ${GIT_TOKEN}
+      GIT_AUTHOR_NAME: "LiveSync Backup Bot"
+      GIT_AUTHOR_EMAIL: "livesync-backup@noreply.local"
+    volumes:
+      - ./backup/config:/config:ro
+      - live-vault:/vault:ro
+      - git-worktrees:/git
+
+volumes:
+  couchdb-data:
+  live-vault:
+  git-worktrees:

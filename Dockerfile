@@ -13,7 +13,10 @@ RUN apk add --no-cache \
   tzdata \
   util-linux
 
-RUN git clone --depth 1 --recursive https://github.com/vrtmrz/livesync-bridge.git /opt/livesync-bridge
+RUN git clone --depth 1 --recursive https://github.com/vrtmrz/livesync-bridge.git /opt/livesync-bridge \
+  && cd /opt/livesync-bridge \
+  && sed -i 's/"nodeModulesDir": "manual"/"nodeModulesDir": "auto"/' deno.jsonc \
+  && deno install --allow-import
 
 COPY scripts/backup.sh /usr/local/bin/livesync-git-backup
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint
